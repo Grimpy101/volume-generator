@@ -4,7 +4,7 @@ mod sphere;
 //mod cpu;
 mod gpu;
 
-use std::{fs::File, io::{Write, Error, BufWriter}, time::Instant};
+use std::{fs::File, io::{Write, Error, BufWriter}, time::Instant, f32::consts::PI};
 
 use byteorder::{WriteBytesExt, BigEndian};
 use rand::seq::SliceRandom;
@@ -96,6 +96,47 @@ fn write_segmentation(filename: &str, texture: Vec<u32>) -> Result<(), Error> {
     return Ok(());
 }
 
+fn write_execution_data(filename: &str, data: &GeneratorData) -> Result<(), Error> {
+    match File::create(filename) {
+        Ok(mut f) => {
+            write!(f, "Name: {}\nVariation count: {}\nSphere count: {}\nSphere range: ({}, {})\nEmpty space density: {}\nNoise range: {}\nVolume dimensions: {}x{}x{}",
+                data.generation_name, data.variation_count, data.sphere_count, data.min_sphere_radius, data.max_sphere_radius,
+                data.empty_space, data.noise_span, data.pixel_dimensions.x, data.pixel_dimensions.y, data.pixel_dimensions.z);
+        },
+        Err(e) => {
+            return Err(e);
+        }
+    };
+
+    println!("Written execution data");
+    return Ok(());
+}
+
+fn write_sphere_data(filename: &str, spheres: &Vec<Sphere>) -> Result<(), Error> {    
+    match File::create(filename) {
+        Ok(mut f) => {
+            write!(f, "ID,POSITION X,POSITION Y,POSITION Z,RADIUS,DENSITY,SURFACE AREA,VOLUME\n");
+            for sphere in spheres {
+                let id = sphere.id();
+                let rad = sphere.radius();
+                let pos = sphere.origin();
+                let den = sphere.density();
+                let sur = 4.0 * PI * rad * rad;
+                let vol = sur * rad / 3.0;
+                
+                let line = format!("{},{},{},{},{},{},{},{}", id, pos.x, pos.y, pos.z, rad, den, sur, vol);
+                write!(f, "{}\n", line);
+            }
+        },
+        Err(e) => {
+            return Err(e);
+        }
+    };
+
+    println!("Written sphere data");
+    return Ok(());
+}
+
 fn generation(generator_data: &GeneratorData, i: u32) -> Result<(), Error> {
     println!("Generating {}. iteration...", i+1);
     let time = Instant::now();
@@ -107,6 +148,10 @@ fn generation(generator_data: &GeneratorData, i: u32) -> Result<(), Error> {
     let volume_filename = format!("{}_{}_i{}_{}x{}x{}.raw",
         gen_name, i, inst_count, dims.x, dims.y, dims.z);
     let material_filename = format!("{}_{}_i{}_{}x{}x{}.sgm",
+        gen_name, i, inst_count, dims.x, dims.y, dims.z);
+    let spheres_filename = format!("{}_{}_i{}_{}x{}x{}.csv",
+        gen_name, i, inst_count, dims.x, dims.y, dims.z);
+    let info_filename = format!("{}_{}_i{}_{}x{}x{}.txt",
         gen_name, i, inst_count, dims.x, dims.y, dims.z);
 
     let spheres = generate_spheres(&generator_data);
@@ -124,6 +169,20 @@ fn generation(generator_data: &GeneratorData, i: u32) -> Result<(), Error> {
             return Err(e);
         }
     };
+
+    match write_sphere_data(&spheres_filename, &spheres) {
+        Ok(_) => (),
+        Err(e) => {
+            return Err(e);
+        }
+    };
+
+    match write_execution_data(&info_filename, &generator_data) {
+        Ok(_) => (),
+        Err(e) => {
+            return Err(e);
+        }
+    }
 
     println!("Generation complete in {} secs", time.elapsed().as_secs_f32());
     return Ok(());
@@ -283,9 +342,11 @@ fn get_params_from_args() -> Option<GeneratorData> {
         else if args[i] == "-h" {
             println!("-----------------------------------------------------------");
             println!("This is a small tool for the creation of testing volumes.\n");
-            println!("This tool outputs two textures:");
+            println!("This tool outputs four files:");
             println!("  * .raw file with volumetric data as a sequence of unsigned 8-bit integers");
-            println!("  * .sgm file with space segmented into classes as a sequence of unsigned 32-bit integers\n");
+            println!("  * .sgm file with space segmented into classes as a sequence of unsigned 32-bit integers");
+            println!("  * .txt file containing settings used for data generation");
+            println!("  * .csv file with information about generated spheres (such as radius, position, id...)\n");
             println!("The supported parameters are:");
             println!("  * -h  Shows this help message.");
             println!("  * -o  Output name to append to generated files. Defaults to {}.", gen_data.generation_name);
