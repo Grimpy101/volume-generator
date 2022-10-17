@@ -14,12 +14,11 @@ use std::env;
 
 pub struct GeneratorData {
     pub variation_count: u32,
-    pub sphere_count: i32,
+    pub sphere_count: u32,
     pub min_sphere_radius: f32,
     pub max_sphere_radius: f32,
     pub empty_space: u32,
     pub noise_span: u32,
-    pub sphere_group_count: i32,
     pub pixel_dimensions: Vector3Usize,
     pub generation_name: String
 }
@@ -37,8 +36,9 @@ fn generate_spheres(gen_data: &GeneratorData) -> Vec<Sphere> {
     densities.shuffle(&mut rand_rng);
 
     let density_size = densities.len();
-    for i in 0..sphere_count {
-        let sphere = Sphere::generate_sphere(min_rad, max_rad, densities[i as usize % density_size], i);
+    for i in 1..sphere_count+1 {
+        let density = densities[(i-1) as usize % density_size];
+        let sphere = Sphere::generate_sphere(min_rad, max_rad, density, i);
         spheres.push(sphere);
     }
     spheres.sort();
@@ -71,7 +71,7 @@ fn write_raw(filename: &str, texture: Vec<u32>) -> Result<(), Error> {
     return Ok(());
 }
 
-fn write_segmentation(filename: &str, texture: Vec<i32>) -> Result<(), Error> {
+fn write_segmentation(filename: &str, texture: Vec<u32>) -> Result<(), Error> {
     println!("Writing material texture...");
     let time = Instant::now();
 
@@ -79,7 +79,7 @@ fn write_segmentation(filename: &str, texture: Vec<i32>) -> Result<(), Error> {
         Ok(f) => {
             let mut buf = BufWriter::new(f);
             for t in texture {
-                match buf.write_i32::<BigEndian>(t) {
+                match buf.write_u32::<BigEndian>(t) {
                     Ok(_) => (),
                     Err(e) => {
                         return Err(e);
@@ -138,7 +138,6 @@ fn get_params_from_args() -> Option<GeneratorData> {
         max_sphere_radius: 0.1,
         empty_space: 30,
         noise_span: 10,
-        sphere_group_count: 1,
         pixel_dimensions: Vector3Usize::new(256, 256, 256),
         generation_name: String::from("untitled")
     };
@@ -286,7 +285,7 @@ fn get_params_from_args() -> Option<GeneratorData> {
             println!("This is a small tool for the creation of testing volumes.\n");
             println!("This tool outputs two textures:");
             println!("  * .raw file with volumetric data as a sequence of unsigned 8-bit integers");
-            println!("  * .sgm file with space segmented into classes as a sequence of signed 64-bit integers\n");
+            println!("  * .sgm file with space segmented into classes as a sequence of unsigned 32-bit integers\n");
             println!("The supported parameters are:");
             println!("  * -h  Shows this help message.");
             println!("  * -o  Output name to append to generated files. Defaults to {}.", gen_data.generation_name);

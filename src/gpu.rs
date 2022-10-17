@@ -70,7 +70,7 @@ fn init() -> Result<(Context, CommandQueue, Kernel), String> {
     return Ok((context, queue, kernel));
 }
 
-pub fn generate_volume_textures_cl(gen_data: &GeneratorData, spheres: &Vec<Sphere>) -> (Vec<i32>, Vec<u32>) {
+pub fn generate_volume_textures_cl(gen_data: &GeneratorData, spheres: &Vec<Sphere>) -> (Vec<u32>, Vec<u32>) {
     let size_x = gen_data.pixel_dimensions.x;
     let size_y = gen_data.pixel_dimensions.y;
     let size_z = gen_data.pixel_dimensions.z;
@@ -135,7 +135,7 @@ pub fn generate_volume_textures_cl(gen_data: &GeneratorData, spheres: &Vec<Spher
         }
     };
     let mat_buffer = unsafe {
-        match Buffer::<cl_int>::create(&context, CL_MEM_WRITE_ONLY, size, ptr::null_mut()) {
+        match Buffer::<cl_uint>::create(&context, CL_MEM_WRITE_ONLY, size, ptr::null_mut()) {
             Ok(b) => b,
             Err(e) => {
                 panic!("{}", e);
@@ -184,7 +184,7 @@ pub fn generate_volume_textures_cl(gen_data: &GeneratorData, spheres: &Vec<Spher
     events.push(kernel_event.get());
 
     let mut den_result: Vec<cl_uint> = vec![0; size];
-    let mut mat_result: Vec<cl_int> = vec![0; size];
+    let mut mat_result: Vec<cl_uint> = vec![0; size];
 
     let read_event_1 = unsafe {
         match queue.enqueue_read_buffer(&den_buffer, CL_NON_BLOCKING, 0, &mut den_result, &events) {

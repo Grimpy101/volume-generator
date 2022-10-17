@@ -6,7 +6,7 @@ use crate::vector3float::Vector3Float;
 
 #[derive(Clone)]
 pub struct Sphere {
-    id: i32,
+    id: u32,
     radius: f32,
     origin: Vector3Float,
     density: u32,
@@ -18,7 +18,7 @@ impl Sphere {
         return self.radius;
     }
 
-    pub fn id(&self) -> i32 {
+    pub fn id(&self) -> u32 {
         return self.id;
     }
 
@@ -30,7 +30,7 @@ impl Sphere {
         return &self.origin;
     }
 
-    pub fn generate_sphere(min_rad: f32, max_rad: f32, density: u32, id: i32) -> Self {
+    pub fn generate_sphere(min_rad: f32, max_rad: f32, density: u32, id: u32) -> Self {
         let mut rand = rand::thread_rng();
 
         let o = Vector3Float::new(rand.gen(), rand.gen(), rand.gen());

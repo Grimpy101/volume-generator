@@ -49,7 +49,7 @@ kernel void main(
             (1.0 / dims[2]) * (k + 0.5)
         };
 
-        int current_id = INT_MAX;
+        int current_id = 0;
         uint current_density = 0;
 
         for (uint in = 0; in < sphere_count; in += 6) {
@@ -69,8 +69,7 @@ kernel void main(
             }
         }
 
-        if (current_id == INT_MAX) {
-            current_id = -1;
+        if (current_id == 0) {
             float mu = (float) empty_space / 2.0;
             current_density = (uint) normal_rand(mu, mu, &rand_seed);
         } else {
